@@ -1,0 +1,32 @@
+{
+  "name": "जेसीबी हिशोब",
+  "short_name": "JCB हिशोब",
+  "description": "जेसीबी मशीनचं रोजचं काम आणि पैशाचा हिशोब ठेवण्यासाठी अ‍ॅप",
+  "start_url": "./index.html",
+  "id": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#181c1a",
+  "theme_color": "#f5b700",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}
