@@ -2,7 +2,7 @@
       "relation": ["delegate_permission/common.handle_all_urls"],
       "target": {
         "namespace": "android_app",
-        "package_name": "io.github.yogtoday2000.twa",
-        "sha256_cert_fingerprints": ["53:70:7D:DB:36:A3:72:C8:04:30:C3:5C:9B:A1:95:EE:C8:91:23:77:22:AB:42:36:F9:EB:E2:9F:28:F1:C0:1B"]
+        "package_name": "io.today.yogtoday.twa",
+        "sha256_cert_fingerprints": ["E6:AB:D5:1F:13:80:C5:23:C3:EE:15:D4:27:45:80:4F:C2:CD:50:38:C4:59:F6:61:91:2D:01:1D:5D:43:AA:87"]
       }
     }]
