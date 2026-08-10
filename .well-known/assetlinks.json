@@ -1,0 +1,8 @@
+[{
+      "relation": ["delegate_permission/common.handle_all_urls"],
+      "target": {
+        "namespace": "android_app",
+        "package_name": "io.github.yogtoday2000.twa",
+        "sha256_cert_fingerprints": ["53:70:7D:DB:36:A3:72:C8:04:30:C3:5C:9B:A1:95:EE:C8:91:23:77:22:AB:42:36:F9:EB:E2:9F:28:F1:C0:1B"]
+      }
+    }]
