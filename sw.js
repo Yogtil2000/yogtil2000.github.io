@@ -1,6 +1,6 @@
 // Bump this version string whenever index.html / react-bundle.js / icons change,
 // so returning users get the fresh copy instead of a stale cached one.
-var CACHE_NAME = 'jcb-hisab-v2';
+var CACHE_NAME = 'jcb-hisab-v4';
 
 var ASSETS = [
   './',
