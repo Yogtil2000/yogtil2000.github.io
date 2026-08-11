@@ -68,6 +68,7 @@
   /* ---------- local persistent storage (per-device) ---------- */
   var LS_KEY = "jcb-hisab-entries-v1";
   var BACKUP_LOG_KEY = "jcb-hisab-backup-log";
+  var AUTO_BACKUP_DATE_KEY = "jcb-hisab-auto-backup-date";
   var localStore = {
     get: function () {
       return new Promise(function (resolve, reject) {
@@ -145,8 +146,11 @@
     var toastState = useState(""); var toast = toastState[0]; var setToast = toastState[1];
     var backupTextState = useState(""); var backupText = backupTextState[0]; var setBackupText = backupTextState[1];
     var backupLogState = useState([]); var backupLog = backupLogState[0]; var setBackupLog = backupLogState[1];
+    var entriesLoadedState = useState(false); var entriesLoaded = entriesLoadedState[0]; var setEntriesLoaded = entriesLoadedState[1];
+    var autoBackupDoneState = useState(false); var autoBackupDone = autoBackupDoneState[0]; var setAutoBackupDone = autoBackupDoneState[1];
     var advancedOpenState = useState(false); var advancedOpen = advancedOpenState[0]; var setAdvancedOpen = advancedOpenState[1];
     var tabState = useState("home"); var tab = tabState[0]; var setTab = tabState[1]; // home | new | history | backup
+    var collapsedMonthsState = useState({}); var collapsedMonths = collapsedMonthsState[0]; var setCollapsedMonths = collapsedMonthsState[1];
 
     var showToast = useCallback(function (msg) {
       setToast(msg);
@@ -158,9 +162,11 @@
         var data = res && res.value ? JSON.parse(res.value) : [];
         setEntries(data);
         setSaveStatus({ ok: true, msg: "✓ " + data.length + " जुन्या नोंदी सापडल्या" });
+        setEntriesLoaded(true);
       }).catch(function () {
         setEntries([]);
         setSaveStatus({ ok: true, msg: "✓ जतन सुविधा तयार आहे (अजून नोंदी नाहीत)" });
+        setEntriesLoaded(true);
       });
       try {
         var logRaw = window.localStorage.getItem(BACKUP_LOG_KEY);
@@ -169,6 +175,20 @@
         setBackupLog([]);
       }
     }, []);
+
+    // Auto-backup once per day: fires right after unlock, only if there's
+    // something to back up and it hasn't already run today.
+    useEffect(function () {
+      if (!entriesLoaded || autoBackupDone) return;
+      setAutoBackupDone(true);
+      if (entries.length === 0) return;
+      var today = todayStr();
+      var lastAuto = null;
+      try { lastAuto = window.localStorage.getItem(AUTO_BACKUP_DATE_KEY); } catch (err) {}
+      if (lastAuto === today) return;
+      try { window.localStorage.setItem(AUTO_BACKUP_DATE_KEY, today); } catch (err) {}
+      doExportFile(true);
+    }, [entriesLoaded]);
 
     var persist = useCallback(function (list) {
       return localStore.set(JSON.stringify(list)).then(function () {
@@ -236,6 +256,7 @@
       persist(next);
       resetForm();
       setTab("home");
+      doExportFile(true, next);
     }
 
     function editEntry(id) {
@@ -264,26 +285,41 @@
       setBackupText(JSON.stringify(entries));
       showToast("बॅकअप तयार झाला — मजकूर कॉपी करून सुरक्षित ठिकाणी ठेवा");
     }
-    function doExportFile() {
+    function formatBackupFilename(d) {
+      var monthAbbr = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"][d.getMonth()];
+      var yyyy = d.getFullYear();
+      var mm = String(d.getMonth() + 1).padStart(2, "0");
+      var dd = String(d.getDate()).padStart(2, "0");
+      var hh = String(d.getHours()).padStart(2, "0");
+      var mi = String(d.getMinutes()).padStart(2, "0");
+      // Year-month prefix first so files naturally sort/group by month in any file browser.
+      return "JCB-Hisab-" + yyyy + "-" + mm + "-" + monthAbbr + "-" + dd + "-" + hh + mi + ".json";
+    }
+    function doExportFile(isAuto, overrideEntries) {
       try {
-        var json = JSON.stringify(entries, null, 2);
+        var listToSave = overrideEntries || entries;
+        var json = JSON.stringify(listToSave, null, 2);
         var blob = new Blob([json], { type: "application/json" });
         var url = URL.createObjectURL(blob);
-        var nowIso = new Date().toISOString();
+        var now = new Date();
+        var nowIso = now.toISOString();
         var fileStamp = todayStr();
         var a = document.createElement("a");
         a.href = url;
-        a.download = "jcb-hisab-backup-" + fileStamp + ".json";
+        a.download = formatBackupFilename(now);
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
         setTimeout(function () { URL.revokeObjectURL(url); }, 2000);
         try { window.localStorage.setItem("jcb-hisab-last-backup", fileStamp); } catch (err) {}
-        var logEntry = { date: nowIso, count: entries.length };
-        var newLog = [logEntry].concat(backupLog).slice(0, 10);
-        setBackupLog(newLog);
-        try { window.localStorage.setItem(BACKUP_LOG_KEY, JSON.stringify(newLog)); } catch (err) {}
-        showToast("फाईल डाउनलोड झाली — फोनच्या Downloads फोल्डरमध्ये सेव्ह आहे");
+        try { window.localStorage.setItem(AUTO_BACKUP_DATE_KEY, fileStamp); } catch (err) {}
+        var logEntry = { date: nowIso, count: listToSave.length, auto: !!isAuto };
+        setBackupLog(function (prevLog) {
+          var newLog = [logEntry].concat(prevLog).slice(0, 15);
+          try { window.localStorage.setItem(BACKUP_LOG_KEY, JSON.stringify(newLog)); } catch (err) {}
+          return newLog;
+        });
+        showToast(isAuto ? "बॅकअप आपोआप झाला — Downloads फोल्डरमध्ये सेव्ह आहे" : "फाईल डाउनलोड झाली — फोनच्या Downloads फोल्डरमध्ये सेव्ह आहे");
       } catch (err) {
         showToast("फाईल डाउनलोड करता आली नाही: " + err.message);
       }
@@ -523,12 +559,43 @@
         "अजून कोणतीही नोंद नाही.", e("br"), "वरील फॉर्म भरून पहिली नोंद जमा करा."
       );
     } else {
-      entriesListEl = Object.keys(groups).sort().reverse().map(function (key) {
+      var monthKeysSorted = Object.keys(groups).sort().reverse();
+      entriesListEl = monthKeysSorted.map(function (key, idx) {
         var list = groups[key];
         var monthProfit = list.reduce(function (s, en) { return s + en.received - en.diesel - en.other; }, 0);
-        return e("div", { key: key },
-          e("div", { style: { fontSize: 12, marginTop: 16, marginBottom: 8, letterSpacing: 0.5, color: C.steel } }, monthLabel(key) + " · निव्वळ नफा " + fmt(monthProfit)),
-          list.map(function (en) {
+        var monthTotal = list.reduce(function (s, en) { return s + en.amount; }, 0);
+        var isCollapsed = !!collapsedMonths[key];
+        function toggleMonth() {
+          setCollapsedMonths(function (c) {
+            var next = Object.assign({}, c);
+            next[key] = !next[key];
+            return next;
+          });
+        }
+        return e("div", { key: key, style: { marginBottom: 14 } },
+          e("div", {
+            onClick: toggleMonth,
+            style: {
+              position: "sticky", top: 0, zIndex: 5, cursor: "pointer",
+              display: "flex", alignItems: "center", justifyContent: "space-between",
+              borderRadius: 12, padding: "12px 14px", marginBottom: isCollapsed ? 0 : 10,
+              background: "linear-gradient(180deg, " + C.surface + " 85%, rgba(35,40,35,0.97))",
+              border: "1px solid " + C.line, boxShadow: "0 4px 10px rgba(0,0,0,0.35)"
+            }
+          },
+            e("div", { style: { display: "flex", alignItems: "center", gap: 9, minWidth: 0 } },
+              e("span", { style: { fontSize: 12, color: C.steel, transform: isCollapsed ? "rotate(-90deg)" : "rotate(0deg)", transition: "transform 0.15s", display: "inline-block" } }, "▾"),
+              e("div", { style: { minWidth: 0 } },
+                e("div", { style: { fontSize: 15, fontWeight: 800, color: C.paper } }, monthLabel(key)),
+                e("div", { style: { fontSize: 11.5, color: C.steel, marginTop: 1 } }, list.length + " नोंदी · एकूण " + fmt(monthTotal))
+              )
+            ),
+            e("div", { style: { textAlign: "right", flexShrink: 0, marginLeft: 8 } },
+              e("div", { style: { fontSize: 10.5, color: C.steel, letterSpacing: 0.3 } }, "निव्वळ नफा"),
+              e("div", { style: { fontSize: 15, fontWeight: 800, color: monthProfit >= 0 ? C.green : C.rust } }, fmt(monthProfit))
+            )
+          ),
+          isCollapsed ? null : list.map(function (en) {
             var due = en.amount - en.received;
             var netAmt = en.amount - en.diesel - en.other;
             var dateFmt = new Date(en.date).toLocaleDateString("mr-IN", { day: "2-digit", month: "short" });
@@ -628,7 +695,10 @@
               },
                 e("span", { style: { width: 20, height: 20, borderRadius: "50%", background: "rgba(122,166,99,0.15)", color: C.green, fontSize: 12, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 } }, "✓"),
                 e("div", { style: { flex: 1, minWidth: 0 } },
-                  e("div", { style: { fontSize: 13, fontWeight: 600, color: C.paper } }, formatRelative(log.date)),
+                  e("div", { style: { fontSize: 13, fontWeight: 600, color: C.paper } },
+                    formatRelative(log.date),
+                    log.auto ? e("span", { style: { fontSize: 10.5, fontWeight: 600, color: C.steel, marginLeft: 6 } }, "(आपोआप)") : null
+                  ),
                   e("div", { style: { fontSize: 11, color: C.steel, marginTop: 1 } }, formatLogDate(log.date))
                 ),
                 e("span", { style: { fontSize: 12, fontWeight: 700, color: C.yellow, padding: "3px 9px", borderRadius: 999, background: "rgba(245,183,0,0.12)", whiteSpace: "nowrap" } }, log.count + " नोंदी")
