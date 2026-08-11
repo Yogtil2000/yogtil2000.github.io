@@ -151,6 +151,13 @@
     var advancedOpenState = useState(false); var advancedOpen = advancedOpenState[0]; var setAdvancedOpen = advancedOpenState[1];
     var tabState = useState("home"); var tab = tabState[0]; var setTab = tabState[1]; // home | new | history | backup
     var collapsedMonthsState = useState({}); var collapsedMonths = collapsedMonthsState[0]; var setCollapsedMonths = collapsedMonthsState[1];
+    var filterOpenState = useState(false); var filterOpen = filterOpenState[0]; var setFilterOpen = filterOpenState[1];
+    var filterNameDraftState = useState(""); var filterNameDraft = filterNameDraftState[0]; var setFilterNameDraft = filterNameDraftState[1];
+    var filterDateFromDraftState = useState(""); var filterDateFromDraft = filterDateFromDraftState[0]; var setFilterDateFromDraft = filterDateFromDraftState[1];
+    var filterDateToDraftState = useState(""); var filterDateToDraft = filterDateToDraftState[0]; var setFilterDateToDraft = filterDateToDraftState[1];
+    var appliedFilterNameState = useState(""); var appliedFilterName = appliedFilterNameState[0]; var setAppliedFilterName = appliedFilterNameState[1];
+    var appliedFilterFromState = useState(""); var appliedFilterFrom = appliedFilterFromState[0]; var setAppliedFilterFrom = appliedFilterFromState[1];
+    var appliedFilterToState = useState(""); var appliedFilterTo = appliedFilterToState[0]; var setAppliedFilterTo = appliedFilterToState[1];
 
     var showToast = useCallback(function (msg) {
       setToast(msg);
@@ -371,7 +378,32 @@
     var monthHours = entries.filter(function (en) { return monthKey(en.date) === cm; }).reduce(function (s, en) { return s + en.hours; }, 0);
     var lifetimeHours = entries.reduce(function (s, en) { return s + en.hours; }, 0);
 
-    var sorted = entries.slice().sort(function (a, b) { return new Date(b.date) - new Date(a.date); });
+    var activeFilterCount = (appliedFilterName ? 1 : 0) + ((appliedFilterFrom || appliedFilterTo) ? 1 : 0);
+    function applyFilters() {
+      setAppliedFilterName(filterNameDraft.trim());
+      setAppliedFilterFrom(filterDateFromDraft);
+      setAppliedFilterTo(filterDateToDraft);
+      setFilterOpen(false);
+    }
+    function resetFilters() {
+      setFilterNameDraft(""); setFilterDateFromDraft(""); setFilterDateToDraft("");
+      setAppliedFilterName(""); setAppliedFilterFrom(""); setAppliedFilterTo("");
+    }
+    function clearNameFilter() {
+      setFilterNameDraft(""); setAppliedFilterName("");
+    }
+    function clearDateFilter() {
+      setFilterDateFromDraft(""); setFilterDateToDraft(""); setAppliedFilterFrom(""); setAppliedFilterTo("");
+    }
+
+    var filteredEntries = entries.filter(function (en) {
+      if (appliedFilterName && en.site.toLowerCase().indexOf(appliedFilterName.toLowerCase()) === -1) return false;
+      if (appliedFilterFrom && en.date < appliedFilterFrom) return false;
+      if (appliedFilterTo && en.date > appliedFilterTo) return false;
+      return true;
+    });
+
+    var sorted = filteredEntries.slice().sort(function (a, b) { return new Date(b.date) - new Date(a.date); });
     var groups = {};
     sorted.forEach(function (en) {
       var k = monthKey(en.date);
@@ -554,7 +586,12 @@
     );
 
     var entriesListEl;
-    if (sorted.length === 0) {
+    if (sorted.length === 0 && activeFilterCount > 0) {
+      entriesListEl = e("div", { style: { textAlign: "center", fontSize: 14, padding: "40px 0", lineHeight: 1.6, color: C.steel } },
+        "या फिल्टरशी जुळणारी कोणतीही नोंद नाही.", e("br"),
+        e("button", { onClick: resetFilters, style: { marginTop: 10, fontSize: 13, color: C.yellow, background: "transparent", border: "none", textDecoration: "underline", cursor: "pointer" } }, "फिल्टर काढून टाका")
+      );
+    } else if (sorted.length === 0) {
       entriesListEl = e("div", { style: { textAlign: "center", fontSize: 14, padding: "40px 0", lineHeight: 1.6, color: C.steel } },
         "अजून कोणतीही नोंद नाही.", e("br"), "वरील फॉर्म भरून पहिली नोंद जमा करा."
       );
@@ -784,11 +821,65 @@
         formEl
       );
     } else if (tab === "history") {
+      var filterButtonEl = e("button", {
+        type: "button", onClick: function () { setFilterOpen(function (v) { return !v; }); },
+        style: {
+          position: "relative", display: "flex", alignItems: "center", gap: 6, flexShrink: 0,
+          fontSize: 12.5, fontWeight: 700, padding: "6px 12px", borderRadius: 999,
+          border: "1px solid " + (activeFilterCount > 0 ? C.yellow : C.line),
+          color: activeFilterCount > 0 ? C.yellow : C.steel,
+          background: activeFilterCount > 0 ? "rgba(245,183,0,0.10)" : "transparent"
+        }
+      },
+        "\u2699\ufe0f फिल्टर",
+        activeFilterCount > 0 ? e("span", {
+          style: { display: "inline-flex", alignItems: "center", justifyContent: "center", width: 16, height: 16, borderRadius: "50%", background: C.yellow, color: C.bg, fontSize: 10, fontWeight: 800 }
+        }, activeFilterCount) : null
+      );
+
+      var chipsEl = activeFilterCount > 0 ? e("div", { style: { display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 10 } },
+        appliedFilterName ? e("span", {
+          style: { display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, padding: "5px 10px", borderRadius: 999, background: C.surface2, border: "1px solid " + C.line, color: C.paper }
+        }, "👤 " + appliedFilterName, e("span", { onClick: clearNameFilter, style: { cursor: "pointer", color: C.rust, fontWeight: 700 } }, "✕")) : null,
+        (appliedFilterFrom || appliedFilterTo) ? e("span", {
+          style: { display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, padding: "5px 10px", borderRadius: 999, background: C.surface2, border: "1px solid " + C.line, color: C.paper }
+        }, "📅 " + (appliedFilterFrom || "…") + " – " + (appliedFilterTo || "…"), e("span", { onClick: clearDateFilter, style: { cursor: "pointer", color: C.rust, fontWeight: 700 } }, "✕")) : null
+      ) : null;
+
+      var filterPanelEl = filterOpen ? e("div", {
+        style: { marginBottom: 14, background: C.surface, border: "1px solid " + C.line, borderRadius: 14, padding: 14 }
+      },
+        e("label", { style: labelStyle }, "ग्राहक / साईट नाव"),
+        e("input", {
+          type: "text", value: filterNameDraft, placeholder: "नाव टाइप करा…",
+          onChange: function (ev) { setFilterNameDraft(ev.target.value); },
+          style: Object.assign({}, inputStyle, { marginBottom: 12 })
+        }),
+        e("label", { style: labelStyle }, "तारीख श्रेणी"),
+        e("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 14 } },
+          e("input", { type: "date", value: filterDateFromDraft, onChange: function (ev) { setFilterDateFromDraft(ev.target.value); }, style: inputStyle }),
+          e("input", { type: "date", value: filterDateToDraft, onChange: function (ev) { setFilterDateToDraft(ev.target.value); }, style: inputStyle })
+        ),
+        e("div", { style: { display: "flex", gap: 10 } },
+          e("button", {
+            type: "button", onClick: applyFilters,
+            style: { flex: 1, fontWeight: 700, fontSize: 14, borderRadius: 10, padding: "11px 0", background: C.yellow, color: C.bg, border: "none" }
+          }, "लागू करा"),
+          e("button", {
+            type: "button", onClick: function () { resetFilters(); setFilterOpen(false); },
+            style: { flex: 1, fontSize: 14, borderRadius: 10, padding: "11px 0", border: "1px solid " + C.line, color: C.steel, background: "transparent" }
+          }, "रीसेट")
+        )
+      ) : null;
+
       tabContent = e("div", { style: { maxWidth: 576, margin: "0 auto", padding: "18px 14px 0" } },
         e("div", { style: { display: "flex", alignItems: "center", gap: 8, marginBottom: 10 } },
           e("div", { style: { fontSize: 12, fontWeight: 700, letterSpacing: 0.5, textTransform: "uppercase", color: C.yellow } }, "सर्व नोंदी"),
-          e("div", { style: { flex: 1, height: 1, background: C.line } })
+          e("div", { style: { flex: 1, height: 1, background: C.line } }),
+          filterButtonEl
         ),
+        filterPanelEl,
+        chipsEl,
         entriesListEl
       );
     } else {
