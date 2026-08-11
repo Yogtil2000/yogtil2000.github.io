@@ -564,11 +564,11 @@
         var list = groups[key];
         var monthProfit = list.reduce(function (s, en) { return s + en.received - en.diesel - en.other; }, 0);
         var monthTotal = list.reduce(function (s, en) { return s + en.amount; }, 0);
-        var isCollapsed = !!collapsedMonths[key];
+        var isCollapsed = collapsedMonths[key] === undefined ? true : collapsedMonths[key];
         function toggleMonth() {
           setCollapsedMonths(function (c) {
             var next = Object.assign({}, c);
-            next[key] = !next[key];
+            next[key] = !isCollapsed;
             return next;
           });
         }
@@ -583,8 +583,22 @@
               border: "1px solid " + C.line, boxShadow: "0 4px 10px rgba(0,0,0,0.35)"
             }
           },
-            e("div", { style: { display: "flex", alignItems: "center", gap: 9, minWidth: 0 } },
-              e("span", { style: { fontSize: 12, color: C.steel, transform: isCollapsed ? "rotate(-90deg)" : "rotate(0deg)", transition: "transform 0.15s", display: "inline-block" } }, "▾"),
+            e("div", { style: { display: "flex", alignItems: "center", gap: 11, minWidth: 0 } },
+              e("div", {
+                style: {
+                  width: 32, height: 32, borderRadius: "50%", flexShrink: 0,
+                  background: "rgba(245,183,0,0.14)", border: "1.5px solid " + C.yellow,
+                  display: "flex", alignItems: "center", justifyContent: "center"
+                }
+              },
+                e("span", {
+                  style: {
+                    fontSize: 18, fontWeight: 900, color: C.yellow, lineHeight: 1,
+                    transform: isCollapsed ? "rotate(-90deg)" : "rotate(0deg)",
+                    transition: "transform 0.15s", display: "inline-block"
+                  }
+                }, "▾")
+              ),
               e("div", { style: { minWidth: 0 } },
                 e("div", { style: { fontSize: 15, fontWeight: 800, color: C.paper } }, monthLabel(key)),
                 e("div", { style: { fontSize: 11.5, color: C.steel, marginTop: 1 } }, list.length + " नोंदी · एकूण " + fmt(monthTotal))
