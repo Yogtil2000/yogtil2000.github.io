@@ -415,10 +415,10 @@
     var labelStyle = { display: "block", fontSize: 12, marginBottom: 6, letterSpacing: 0.5, textTransform: "uppercase", fontWeight: 600, color: C.steel };
 
     var summaryCards = [
-      { lbl: "एकूण कमाई", val: fmt(totalBilled), color: C.paper },
-      { lbl: "एकूण खर्च", val: fmt(totalExpense), color: C.rust },
-      { lbl: "निव्वळ नफा", val: fmt(netProfit), color: netProfit >= 0 ? C.green : C.rust },
-      { lbl: "थकीत रक्कम", val: fmt(pending), color: C.yellow }
+      { lbl: "एकूण कमाई", val: fmt(totalBilled), color: C.paper, icon: "💰" },
+      { lbl: "एकूण खर्च", val: fmt(totalExpense), color: C.rust, icon: "💸" },
+      { lbl: "निव्वळ नफा", val: fmt(netProfit), color: netProfit >= 0 ? C.green : C.rust, icon: "📈" },
+      { lbl: "थकीत रक्कम", val: fmt(pending), color: C.yellow, icon: "⏳" }
     ];
 
     var recentEntries = sorted.slice(0, 3);
@@ -440,7 +440,7 @@
               var due = en.amount - en.received;
               return e("div", {
                 key: en.id, onClick: function () { setTab("history"); },
-                style: { display: "flex", justifyContent: "space-between", alignItems: "center", borderRadius: 10, padding: "10px 12px", background: C.surface, border: "1px solid " + C.line, borderLeft: "3px solid " + C.yellow, cursor: "pointer" }
+                style: { display: "flex", justifyContent: "space-between", alignItems: "center", borderRadius: 10, padding: "11px 13px", background: C.surface, border: "1px solid " + C.line, borderLeft: "3px solid " + C.yellow, boxShadow: "0 4px 12px rgba(0,0,0,0.22)", cursor: "pointer" }
               },
                 e("div", null,
                   e("div", { style: { fontWeight: 700, fontSize: 14 } }, en.site),
@@ -457,26 +457,33 @@
 
     var quickAddEl = e("button", {
       type: "button", onClick: function () { resetForm(); setTab("new"); },
-      style: { width: "100%", fontWeight: 700, fontSize: 15, borderRadius: 10, padding: "13px 0", marginTop: 20, letterSpacing: 0.3, background: C.yellow, color: C.bg, border: "none", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }
+      style: {
+        width: "100%", fontWeight: 800, fontSize: 15, borderRadius: 12, padding: "14px 0", marginTop: 20, letterSpacing: 0.3,
+        background: "linear-gradient(135deg, #ffcf4d, " + C.yellow + " 60%, #e0a400)",
+        color: C.bg, border: "none", boxShadow: "0 8px 20px rgba(245,183,0,0.32), inset 0 1px 0 rgba(255,255,255,0.35)",
+        display: "flex", alignItems: "center", justifyContent: "center", gap: 8
+      }
     }, "➕ नवीन नोंद जमा करा");
 
     var headerEl = e("div", {
-      style: { padding: "28px 16px 20px", position: "relative", overflow: "hidden", borderBottom: "3px solid " + C.yellow, background: "linear-gradient(180deg, #1e2320, " + C.bg + ")" }
+      style: { padding: "28px 16px 22px", position: "relative", overflow: "hidden", background: "linear-gradient(180deg, #1e2320, " + C.bg + ")" }
     },
       e("div", { style: { position: "absolute", right: -40, top: -40, width: 160, height: 160, borderRadius: "50%", border: "22px solid rgba(245,183,0,0.06)" } }),
       e("div", { style: { maxWidth: 576, margin: "0 auto", position: "relative" } },
         e("div", { style: { fontSize: 12, fontWeight: 700, letterSpacing: 2, textTransform: "uppercase", color: C.yellow } }, "दैनिक हिशोब वही"),
         e("h1", { style: { fontSize: 28, fontWeight: 700, marginTop: 4, marginBottom: 4 } }, "जेसीबी हिशोब"),
         e("div", { style: { fontSize: 14, marginBottom: 16, color: C.steel } }, "मशीनचं रोजचं काम आणि पैशाचा हिशोब — एका ठिकाणी"),
-        e("div", { style: { display: "flex", alignItems: "center", gap: 12, marginTop: 8 } },
-          e("div", { style: { fontSize: 12, textTransform: "uppercase", letterSpacing: 0.5, width: 112, flexShrink: 0, color: C.steel } }, monthLabel(cm) + " — एकूण तास"),
-          e(DigitMeter, { value: monthHours, digits: 4 }),
-          e("div", { style: { fontSize: 12, alignSelf: "flex-end", color: C.steel } }, "तास")
-        ),
-        e("div", { style: { display: "flex", alignItems: "center", gap: 12, marginTop: 8 } },
-          e("div", { style: { fontSize: 12, textTransform: "uppercase", letterSpacing: 0.5, width: 112, flexShrink: 0, color: C.steel } }, "एकूण सर्विस तास (सर्व काळ)"),
-          e(DigitMeter, { value: lifetimeHours, digits: 5 }),
-          e("div", { style: { fontSize: 12, alignSelf: "flex-end", color: C.steel } }, "तास")
+        e("div", { style: { background: "rgba(0,0,0,0.20)", borderRadius: 14, padding: "13px 14px 11px", border: "1px solid rgba(255,255,255,0.05)" } },
+          e("div", { style: { display: "flex", alignItems: "center", gap: 12 } },
+            e("div", { style: { fontSize: 12, textTransform: "uppercase", letterSpacing: 0.5, width: 112, flexShrink: 0, color: C.steel } }, monthLabel(cm) + " — एकूण तास"),
+            e(DigitMeter, { value: monthHours, digits: 4 }),
+            e("div", { style: { fontSize: 12, alignSelf: "flex-end", color: C.steel } }, "तास")
+          ),
+          e("div", { style: { display: "flex", alignItems: "center", gap: 12, marginTop: 10 } },
+            e("div", { style: { fontSize: 12, textTransform: "uppercase", letterSpacing: 0.5, width: 112, flexShrink: 0, color: C.steel } }, "एकूण सर्विस तास (सर्व काळ)"),
+            e(DigitMeter, { value: lifetimeHours, digits: 5 }),
+            e("div", { style: { fontSize: 12, alignSelf: "flex-end", color: C.steel } }, "तास")
+          )
         ),
         e("div", { style: { marginTop: 12, display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" } },
           e("div", {
@@ -491,14 +498,28 @@
             style: { fontSize: 12, fontWeight: 700, padding: "6px 10px", borderRadius: 6, border: "1px solid " + C.yellow, color: C.yellow, background: "transparent" }
           }, "पुन्हा जतन करा") : null
         )
-      )
+      ),
+      e("div", {
+        style: {
+          position: "absolute", bottom: 0, left: 0, right: 0, height: 4,
+          background: "linear-gradient(90deg, transparent, " + C.yellow + " 15%, " + C.yellow + " 85%, transparent)",
+          boxShadow: "0 0 14px 2px rgba(245,183,0,0.55)"
+        }
+      })
     );
 
     var summaryEl = e("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginTop: 20 } },
       summaryCards.map(function (c, i) {
-        return e("div", { key: i, style: { borderRadius: 12, padding: 14, background: C.surface, border: "1px solid " + C.line } },
-          e("div", { style: { fontSize: 12, letterSpacing: 0.5, color: C.steel } }, c.lbl),
-          e("div", { style: { fontWeight: 700, fontSize: 22, marginTop: 4, color: c.color, fontVariantNumeric: "tabular-nums" } }, c.val)
+        return e("div", {
+          key: i, style: {
+            borderRadius: 14, padding: "14px 14px 12px",
+            background: "linear-gradient(155deg, " + C.surface + ", " + C.surface2 + ")",
+            border: "1px solid " + C.line, boxShadow: "0 6px 16px rgba(0,0,0,0.28)"
+          }
+        },
+          e("div", { style: { fontSize: 17, marginBottom: 6, lineHeight: 1 } }, c.icon),
+          e("div", { style: { fontSize: 11.5, letterSpacing: 0.4, textTransform: "uppercase", fontWeight: 600, color: C.steel } }, c.lbl),
+          e("div", { style: { fontWeight: 800, fontSize: 21, marginTop: 3, color: c.color, fontVariantNumeric: "tabular-nums" } }, c.val)
         );
       })
     );
